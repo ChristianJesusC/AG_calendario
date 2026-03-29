@@ -1,0 +1,36 @@
+# Configuracion del torneo - CancharIA
+# 8 equipos | 2 canchas | 3 arbitros | 28 partidos (round-robin)
+
+[EQUIPOS]
+id,nombre,num_jugadores
+1,Titanes FC,12
+2,Rayo Galactico,12
+3,Inter de Barrio,12
+4,Halcones Dorados,12
+5,Fenix United,12
+6,Dragones del Norte,12
+7,Atletico Pirana,12
+8,Real Sociedad Deportiva,12
+
+[CANCHAS]
+id,nombre,horarios_disponibles,max_partidos_por_dia
+1,Cancha A - Estadio Central,08:00|10:00|12:00|14:00|16:00|18:00|20:00,7
+2,Cancha B - Anexo Alterno,08:00|10:00|12:00|14:00|16:00|18:00|20:00,5
+
+[ARBITROS]
+id,nombre,dia,franjas
+1,Luis Garcia,1,08:00|10:00|12:00
+1,Luis Garcia,2,08:00|10:00|12:00
+1,Luis Garcia,3,08:00|10:00|12:00
+1,Luis Garcia,4,08:00|10:00|12:00
+1,Luis Garcia,5,08:00|10:00|12:00
+2,Ana Martinez,4,14:00|16:00|18:00|20:00
+2,Ana Martinez,5,14:00|16:00|18:00|20:00
+2,Ana Martinez,6,14:00|16:00|18:00|20:00
+2,Ana Martinez,7,14:00|16:00|18:00|20:00
+3,Jose Rodriguez,6,08:00|10:00|12:00|14:00|16:00|18:00|20:00
+3,Jose Rodriguez,7,08:00|10:00|12:00|14:00|16:00|18:00|20:00
+
+[GENERAL]
+descanso_minimo_horas,max_partidos_arbitro_dia,min_partidos_semana,max_partidos_semana
+4,3,1,3
