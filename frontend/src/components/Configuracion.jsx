@@ -1,9 +1,16 @@
 import { useState, useRef } from 'react'
 import axios from 'axios'
 
-const API = 'http://localhost:8000'
+const API = ''
 const FRANJAS = ['06:00','08:00','10:00','12:00','14:00','16:00','18:00','20:00']
 const DIAS = [1,2,3,4,5,6,7]
+
+const TIPOS_TORNEO = [
+  { id: 'relampago',  label: 'Relámpago', semanas: 1,  desc: '1 semana intensa' },
+  { id: 'mensual',    label: 'Mensual',   semanas: 4,  desc: '4 semanas' },
+  { id: 'trimestral', label: 'Trimestral',semanas: 12, desc: '12 semanas' },
+  { id: 'semestral',  label: 'Semestral', semanas: 24, desc: '24 semanas' },
+]
 
 // ── CSV helpers ──────────────────────────────────────────────────────────────
 
@@ -33,8 +40,8 @@ id,nombre,dia,franjas
 2,Maria Lopez,4,14:00|16:00
 
 [GENERAL]
-descanso_minimo_horas,max_partidos_arbitro_dia,min_partidos_semana,max_partidos_semana
-24,2,0,3
+descanso_minimo_horas,max_partidos_arbitro_dia,min_partidos_semana,max_partidos_semana,tipo_torneo
+24,2,0,3,relampago
 `
 
 function parseLine(line) {
@@ -92,6 +99,8 @@ function csvToConfig(sections) {
       arbMap[id].disponibilidad[r.dia] = r.franjas.split('|').filter(Boolean)
   }
   const g = sections['GENERAL']?.[0] || {}
+  const tiposValidos = ['relampago', 'mensual', 'trimestral', 'semestral']
+  const tipoRaw = (g.tipo_torneo || '').trim().toLowerCase()
   return {
     equipos,
     canchas,
@@ -100,6 +109,7 @@ function csvToConfig(sections) {
     max_partidos_arbitro_dia: Number(g.max_partidos_arbitro_dia) || 2,
     min_partidos_semana:      Number(g.min_partidos_semana)      || 0,
     max_partidos_semana:      Number(g.max_partidos_semana)      || 999,
+    tipo_torneo:              tiposValidos.includes(tipoRaw) ? tipoRaw : 'relampago',
   }
 }
 
@@ -340,15 +350,16 @@ function ArbitrosTab({ arbitros, setArbitros }) {
 
 export default function Configuracion({ onConfigurar }) {
   const [tab, setTab] = useState('equipos')
-  const [equipos, setEquipos]     = useState([])
-  const [canchas, setCanchas]     = useState([])
-  const [arbitros, setArbitros]   = useState([])
-  const [descanso, setDescanso]   = useState(24)
-  const [maxArbDia, setMaxArbDia] = useState(2)
-  const [minSem, setMinSem]       = useState(0)
-  const [maxSem, setMaxSem]       = useState(3)
-  const [mensaje, setMensaje]     = useState(null)
-  const [dragOver, setDragOver]   = useState(false)
+  const [equipos, setEquipos]         = useState([])
+  const [canchas, setCanchas]         = useState([])
+  const [arbitros, setArbitros]       = useState([])
+  const [descanso, setDescanso]       = useState(24)
+  const [maxArbDia, setMaxArbDia]     = useState(2)
+  const [minSem, setMinSem]           = useState(0)
+  const [maxSem, setMaxSem]           = useState(3)
+  const [tipoTorneo, setTipoTorneo]   = useState('relampago')
+  const [mensaje, setMensaje]         = useState(null)
+  const [dragOver, setDragOver]       = useState(false)
   const fileRef = useRef()
 
   const cargarCSV = (text) => {
@@ -365,6 +376,7 @@ export default function Configuracion({ onConfigurar }) {
       setMaxArbDia(cfg.max_partidos_arbitro_dia)
       setMinSem(cfg.min_partidos_semana)
       setMaxSem(cfg.max_partidos_semana === 999 ? 3 : cfg.max_partidos_semana)
+      if (cfg.tipo_torneo) setTipoTorneo(cfg.tipo_torneo)
       setMensaje({ tipo: 'ok', txt: `CSV cargado: ${cfg.equipos.length} equipos, ${cfg.canchas.length} canchas, ${cfg.arbitros.length} árbitros.` })
     } catch (e) {
       setMensaje({ tipo: 'error', txt: `Error al leer CSV: ${e.message}` })
@@ -394,6 +406,7 @@ export default function Configuracion({ onConfigurar }) {
       max_partidos_arbitro_dia: maxArbDia,
       min_partidos_semana: minSem,
       max_partidos_semana: maxSem || 999,
+      tipo_torneo: tipoTorneo,
     }
     try {
       const res = await axios.post(`${API}/liga/configurar`, body)
@@ -406,9 +419,54 @@ export default function Configuracion({ onConfigurar }) {
 
   const total = equipos.length >= 2 ? (equipos.length * (equipos.length - 1)) / 2 : 0
 
+  const tipoActual = TIPOS_TORNEO.find(t => t.id === tipoTorneo)
+
   return (
     <div>
       <div className="section-title">Configuración de la liga</div>
+
+      {/* Tipo de torneo */}
+      <div className="card">
+        <div className="card-title">Tipo de torneo</div>
+        <p className="text-muted" style={{ marginBottom: 14 }}>
+          Define la duración total del torneo. Esto determina cuántas semanas tiene el calendario.
+        </p>
+        <div className="row" style={{ gap: 12, flexWrap: 'wrap' }}>
+          {TIPOS_TORNEO.map(t => {
+            const sel = tipoTorneo === t.id
+            return (
+              <button
+                key={t.id}
+                onClick={() => setTipoTorneo(t.id)}
+                style={{
+                  flex: '1 1 140px',
+                  padding: '14px 16px',
+                  borderRadius: 10,
+                  border: `2px solid ${sel ? 'var(--primary)' : 'var(--border)'}`,
+                  background: sel ? 'var(--primary)' : 'white',
+                  color: sel ? 'white' : 'var(--text)',
+                  cursor: 'pointer',
+                  textAlign: 'left',
+                  transition: 'all 0.15s',
+                }}
+              >
+                <div style={{ fontWeight: 700, fontSize: '1rem', marginBottom: 4 }}>{t.label}</div>
+                <div style={{ fontSize: '0.82rem', opacity: 0.85 }}>{t.desc}</div>
+                <div style={{ fontSize: '0.78rem', marginTop: 6, opacity: 0.7 }}>
+                  {t.semanas} {t.semanas === 1 ? 'semana' : 'semanas'} · {t.semanas * 7} días
+                </div>
+              </button>
+            )
+          })}
+        </div>
+        {tipoActual && (
+          <div className="alert alert-info" style={{ marginTop: 14, marginBottom: 0 }}>
+            Torneo <strong>{tipoActual.label}</strong>: el calendario abarcará hasta{' '}
+            <strong>{tipoActual.semanas * 7} días</strong> ({tipoActual.semanas}{' '}
+            {tipoActual.semanas === 1 ? 'semana' : 'semanas'}).
+          </div>
+        )}
+      </div>
 
       {/* CSV */}
       <div className="card">
@@ -497,6 +555,8 @@ export default function Configuracion({ onConfigurar }) {
             { val: total, lbl: 'Partidos a generar' },
             { val: `${descanso}h`, lbl: 'Descanso mín.' },
             { val: `${minSem}–${maxSem}`, lbl: 'Partidos/sem.' },
+            { val: tipoActual?.label ?? '—', lbl: 'Tipo torneo' },
+            { val: `${tipoActual?.semanas ?? 1} sem.`, lbl: 'Duración' },
           ].map(s => (
             <div key={s.lbl} className="stat-box">
               <div className="val">{s.val}</div>

@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import axios from 'axios'
 
-const API = 'http://localhost:8000'
+const API = ''
 
 function FiltroEquipo({ liga }) {
   const [equipoId, setEquipoId] = useState('')

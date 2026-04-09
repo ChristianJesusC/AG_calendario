@@ -1,7 +1,8 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import axios from 'axios'
+import { descargarCalendario } from '../utils/descargar'
 
-const API = 'http://localhost:8000'
+const API = ''
 const CANCHA_COLORS = ['#e3f2fd','#f3e5f5','#e8f5e9','#fff8e1','#fce4ec','#e0f7fa','#f9fbe7']
 
 // ── Tabla comparativa ────────────────────────────────────────────────────────
@@ -260,13 +261,21 @@ function DetalleIndividuo({ individuoId }) {
 // ── Calendario semanal completo ───────────────────────────────────────────────
 
 function Calendario({ individuoId, liga }) {
-  const [cal, setCal] = useState(null)
+  const [cal,         setCal]         = useState(null)
+  const [descargando, setDescargando] = useState(false)
+  const calRef = useRef(null)
 
   useEffect(() => {
     if (individuoId === null) return
     setCal(null)
     axios.get(`${API}/ag/calendario/${individuoId}`).then(res => setCal(res.data.calendario))
   }, [individuoId])
+
+  const handleDescargar = async () => {
+    setDescargando(true)
+    await descargarCalendario(calRef, 'calendario.png')
+    setDescargando(false)
+  }
 
   if (!cal) return <p className="text-muted">Cargando calendario...</p>
 
@@ -278,7 +287,18 @@ function Calendario({ individuoId, liga }) {
   if (dias.length === 0) return <p className="text-muted">Sin datos de calendario.</p>
 
   return (
-    <div style={{ overflowX: 'auto' }}>
+    <div>
+      <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 10 }}>
+        <button
+          className="btn btn-outline btn-sm"
+          onClick={handleDescargar}
+          disabled={descargando}
+          title="Descargar calendario completo como PNG de alta resolución"
+        >
+          {descargando ? 'Generando...' : 'Descargar PNG'}
+        </button>
+      </div>
+    <div ref={calRef} style={{ overflowX: 'auto' }}>
       <div className="row" style={{ marginBottom: 12, flexWrap: 'wrap', gap: 8 }}>
         <strong>Canchas:</strong>
         {canchas.map(c => (
@@ -323,6 +343,7 @@ function Calendario({ individuoId, liga }) {
           ))}
         </tbody>
       </table>
+    </div>
     </div>
   )
 }
