@@ -174,7 +174,10 @@ def mutar(individuo: list, liga: dict) -> list:
         g[1] = c["id"]
         g[3] = random.choice(c["horarios_disponibles"])
     elif op == 1:
-        c    = next((x for x in canchas if x["id"] == g[1]), random.choice(canchas))
+        c    = next((x for x in canchas if x["id"] == g[1]), None)
+        if c is None:
+            c    = random.choice(canchas)
+            g[1] = c["id"]
         g[3] = random.choice(c["horarios_disponibles"])
     elif op == 2:
         g[4] = random.choice(liga["arbitros"])["id"]
