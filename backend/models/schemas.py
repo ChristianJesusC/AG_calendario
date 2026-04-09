@@ -1,6 +1,3 @@
-"""
-Capa de modelos — esquemas Pydantic para validación de entradas HTTP.
-"""
 from pydantic import BaseModel
 from typing import List, Dict
 
@@ -32,6 +29,7 @@ class ConfigLiga(BaseModel):
     max_partidos_arbitro_dia: int
     min_partidos_semana: int = 0
     max_partidos_semana: int = 999
+    tipo_torneo: str = "relampago"   # relampago | mensual | trimestral | semestral
 
 
 class ParamsAG(BaseModel):

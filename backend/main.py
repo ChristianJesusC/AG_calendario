@@ -1,7 +1,3 @@
-"""
-CancharIA — punto de entrada de la aplicación.
-Registra middleware y routers; no contiene lógica de negocio.
-"""
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
@@ -16,7 +12,7 @@ app = FastAPI(
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173"],
+    allow_origins=["http://localhost:5173", "http://localhost:80", "http://localhost"],
     allow_methods=["*"],
     allow_headers=["*"],
 )

@@ -5,8 +5,12 @@ No depende de estado, HTTP ni frameworks externos.
 import random
 from itertools import combinations
 
-
-# ── Utilidades ────────────────────────────────────────────────────────────────
+DURACION_SEMANAS = {
+    "relampago":  1,
+    "mensual":    4,
+    "trimestral": 12,
+    "semestral":  24,
+}
 
 def hora_a_min(hora: str) -> int:
     """Convierte 'HH:MM' a minutos desde medianoche."""
@@ -15,9 +19,20 @@ def hora_a_min(hora: str) -> int:
 
 
 def dias_disponibles(liga: dict) -> list[int]:
-    """Devuelve los días con al menos un árbitro disponible."""
-    dias = {int(d) for arb in liga["arbitros"] for d in arb["disponibilidad"]}
-    return sorted(dias) if dias else list(range(1, 8))
+    """
+    Devuelve todos los días calendario disponibles según el tipo de torneo.
+    Los árbitros repiten disponibilidad cada semana (por día-de-semana).
+    """
+    dias_semana = {int(d) for arb in liga["arbitros"] for d in arb["disponibilidad"]}
+    if not dias_semana:
+        dias_semana = set(range(1, 8))
+
+    num_semanas = DURACION_SEMANAS.get(liga.get("tipo_torneo", "relampago"), 1)
+    dias = []
+    for semana in range(num_semanas):
+        for dia in sorted(dias_semana):
+            dias.append(semana * 7 + dia)
+    return dias
 
 
 def generar_partidos(equipos: list) -> list[dict]:
@@ -26,9 +41,6 @@ def generar_partidos(equipos: list) -> list[dict]:
         {"id": i + 1, "local": e1, "visitante": e2}
         for i, (e1, e2) in enumerate(combinations(equipos, 2))
     ]
-
-
-# ── Representación ────────────────────────────────────────────────────────────
 
 def generar_individuo(partidos: list, liga: dict) -> list[tuple]:
     """
@@ -49,9 +61,6 @@ def generar_individuo(partidos: list, liga: dict) -> list[tuple]:
             random.choice(arbitros)["id"],
         ))
     return individuo
-
-
-# ── Función de aptitud ────────────────────────────────────────────────────────
 
 def calcular_aptitud(individuo: list, partidos: list, liga: dict) -> float:
     """
@@ -104,7 +113,8 @@ def calcular_aptitud(individuo: list, partidos: list, liga: dict) -> float:
             conteo_a[aid] += 1
         arb = arb_map.get(aid)
         if arb:
-            if franja not in arb["disponibilidad"].get(str(dia), []):
+            dia_semana = (dia - 1) % 7 + 1   # convierte día absoluto → día-de-semana (1-7)
+            if franja not in arb["disponibilidad"].get(str(dia_semana), []):
                 penalizacion += 100          # árbitro fuera de disponibilidad
             arb_dia.setdefault(aid, {})
             arb_dia[aid][dia] = arb_dia[aid].get(dia, 0) + 1
@@ -133,9 +143,6 @@ def calcular_aptitud(individuo: list, partidos: list, liga: dict) -> float:
                     penalizacion += 30 * (min_sem - count)
 
     return 1.0 / (1 + W1 * p_descanso + W2 * b_canchas + W3 * b_arbitros + penalizacion)
-
-
-# ── Operadores genéticos ──────────────────────────────────────────────────────
 
 def torneo(pob: list, apts: list) -> list:
     """Selección por torneo binario."""
@@ -178,8 +185,6 @@ def mutar(individuo: list, liga: dict) -> list:
     ind[idx] = tuple(g)
     return ind
 
-
-# ── Ciclo principal ───────────────────────────────────────────────────────────
 
 def ag_gen(params: dict, partidos: list, liga: dict):
     """

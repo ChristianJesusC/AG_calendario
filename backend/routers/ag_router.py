@@ -1,7 +1,3 @@
-"""
-Capa de presentación — rutas HTTP del algoritmo genético.
-Solo valida la entrada y delega al servicio correspondiente.
-"""
 from fastapi import APIRouter
 from fastapi.responses import StreamingResponse
 from models.schemas import ParamsAG

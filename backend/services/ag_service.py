@@ -1,15 +1,8 @@
-"""
-Capa de servicio — lógica de negocio del algoritmo genético.
-Coordina core.genetic con el repositorio (state) y produce las respuestas.
-"""
 import asyncio
 import json
 
 from core.genetic import ag_gen, hora_a_min
 import state
-
-
-# ── Helpers privados ──────────────────────────────────────────────────────────
 
 def _partido_map(partidos: list) -> dict:
     return {p["id"]: p for p in partidos}
@@ -57,9 +50,6 @@ def _stats_basicas(individuo: list, partidos: list, liga: dict) -> dict:
         "balance_arbitros": round(b_arbitros, 2),
     }
 
-
-# ── Streaming SSE ─────────────────────────────────────────────────────────────
-
 async def ejecutar_ag_stream(params: dict):
     """
     Generador asíncrono para Server-Sent Events.
@@ -78,7 +68,9 @@ async def ejecutar_ag_stream(params: dict):
     for gen_n, mejor, pob, apts in ag_gen(params, partidos, liga):
         ultima_pob   = pob
         ultimas_apts = apts
-        yield f"data: {json.dumps({'generacion': gen_n, 'mejor_aptitud': round(mejor, 6)})}\n\n"
+        best_idx = max(range(len(apts)), key=lambda i: apts[i])
+        comps = _stats_basicas(pob[best_idx], partidos, liga)
+        yield f"data: {json.dumps({'generacion': gen_n, 'mejor_aptitud': round(mejor, 6), 'p_descanso': comps['descanso'], 'b_canchas': comps['balance_canchas'], 'b_arbitros': comps['balance_arbitros']})}\n\n"
         await asyncio.sleep(0)
 
     if ultima_pob and ultimas_apts:
@@ -90,8 +82,6 @@ async def ejecutar_ag_stream(params: dict):
 
     yield f"data: {json.dumps({'done': True})}\n\n"
 
-
-# ── Consultas de resultados ───────────────────────────────────────────────────
 
 def get_resultados() -> dict:
     mejores = state.get_mejores()
@@ -106,7 +96,6 @@ def get_resultados() -> dict:
             for m in mejores
         ]
     }
-
 
 def get_calendario(individuo_id: int) -> dict:
     ind = next((m for m in state.get_mejores() if m["id"] == individuo_id), None)
@@ -224,7 +213,8 @@ def get_detalle(individuo_id: int) -> dict:
             conteo_a[aid] += 1
         arb = am.get(aid)
         if arb:
-            if franja not in arb["disponibilidad"].get(str(dia), []):
+            dia_semana = (dia - 1) % 7 + 1
+            if franja not in arb["disponibilidad"].get(str(dia_semana), []):
                 fuera_d[aid] = fuera_d.get(aid, 0) + 1
             arb_dia_cnt.setdefault(aid, {})
             arb_dia_cnt[aid][dia] = arb_dia_cnt[aid].get(dia, 0) + 1
@@ -261,9 +251,6 @@ def get_detalle(individuo_id: int) -> dict:
         "canchas":   canchas_detalle,
         "arbitros":  arbitros_detalle,
     }
-
-
-# ── Filtros ───────────────────────────────────────────────────────────────────
 
 def filtrar_equipo(equipo_id: int) -> dict:
     mejores = state.get_mejores()
